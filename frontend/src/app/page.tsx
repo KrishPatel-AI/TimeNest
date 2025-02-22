@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { LucideLock, LucideGlobe, LucideUsers, LucideShield } from "lucide-react";
+import Link from "next/link";
 
 export default function Home() {
   return (
@@ -9,7 +10,9 @@ export default function Home() {
       <section className="text-center max-w-3xl mt-12">
         <h1 className="text-4xl font-bold">Preserve Your Memories with Digital Time Capsules</h1>
         <p className="text-lg text-muted-foreground mt-4">Create, store, and unlock digital memories at a future date, securely and collaboratively.</p>
-        <Button className="mt-6">Create Your Capsule</Button>
+        <Link href="/create_capsule">
+         <Button className="mt-6">Create Your Capsule</Button>
+        </Link>
       </section>
 
       
