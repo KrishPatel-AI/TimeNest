@@ -1,6 +1,0 @@
-{
-  "dependencies": {
-    "react-timer-hook": "^3.0.8",
-    "shadcn-ui": "^0.9.4"
-  }
-}
