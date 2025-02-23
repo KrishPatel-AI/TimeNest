@@ -6,7 +6,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
-import { Calendar, Clock, Tag } from "lucide-react";
+import { Calendar, Clock, Tag, Share2, User } from "lucide-react";
 
 const ViewDialog = ({ capsule, open, onClose }) => {
   if (!capsule) return null;
@@ -31,8 +31,16 @@ const ViewDialog = ({ capsule, open, onClose }) => {
         <div className="space-y-4 text-left">
           {/* Capsule Message */}
           <p className="text-gray-600 dark:text-gray-300  leading-relaxed">
-            {capsule.message}
+            Description: {capsule.message}
           </p>
+          <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+            <User className="w-5 h-5" />
+            <span className="font-medium">{capsule.createdBy}</span>
+          </div>
+          <div className="flex items-center space-x-2 text-gray-500 dark:text-gray-400">
+            <Share2 className="w-5 h-5" />
+            <span className="font-medium">{capsule.sharedWith}</span>
+          </div>
 
           {/* Unlock Date & Time */}
           <div className="flex flex-col space-y-2">
