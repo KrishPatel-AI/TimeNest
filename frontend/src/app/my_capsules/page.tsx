@@ -1,7 +1,5 @@
 "use client";
 
-import { useState } from "react";
-
 import {
   Card,
   CardHeader,
@@ -19,34 +17,50 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 
 import { Search, Eye, Trash2, Edit } from "lucide-react";
 
+import { useEffect, useState } from "react";
+import { auth, db } from "@/lib/firebaseConfig";
+import {
+  collection,
+  query,
+  where,
+  getDocs,
+  deleteDoc,
+  doc,
+} from "firebase/firestore";
+
 const MyCapsules = () => {
   const [search, setSearch] = useState("");
+  const [capsules, setCapsules] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  const capsules = [
-    {
-      id: 1,
-      title: "Trip to Paris",
-      content: "Amazing memories!",
-      status: "Locked",
-      unlockDate: "2025-12-25",
-    },
+  useEffect(() => {
+    const fetchCapsules = async () => {
+      if (!auth.currentUser) return;
+      const userId = auth.currentUser.uid;
+      const q = query(
+        collection(db, "capsules"),
+        where("userId", "==", userId)
+      );
+      const querySnapshot = await getDocs(q);
+      const userCapsules = querySnapshot.docs.map((doc) => ({
+        id: doc.id,
+        ...doc.data(),
+      }));
+      setCapsules(userCapsules);
+      setLoading(false);
+    };
+    fetchCapsules();
+  }, []);
 
-    {
-      id: 2,
-      title: "Graduation Day",
-      content: "Proud moment!",
-      status: "Opened",
-      unlockDate: "2024-01-01",
-    },
-
-    {
-      id: 3,
-      title: "Startup Launch",
-      content: "Big milestone!",
-      status: "Locked",
-      unlockDate: "2026-06-15",
-    },
-  ];
+  const handleDelete = async (id) => {
+    if (!confirm("Are you sure you want to delete this capsule?")) return;
+    try {
+      await deleteDoc(doc(db, "capsules", id));
+      setCapsules(capsules.filter((capsule) => capsule.id !== id));
+    } catch (error) {
+      console.error("Error deleting capsule:", error);
+    }
+  };
 
   const filteredCapsules = capsules.filter((capsule) =>
     capsule.title.toLowerCase().includes(search.toLowerCase())
@@ -68,86 +82,87 @@ const MyCapsules = () => {
           <Search className="w-5 h-5" />
         </Button>
       </div>
+      {loading ? (
+        <p>Loading...</p>
+      ) : (
+        <Tabs defaultValue="locked">
+          <TabsList>
+            <TabsTrigger value="locked">Locked Capsules</TabsTrigger>
 
-      <Tabs defaultValue="locked">
-        <TabsList>
-          <TabsTrigger value="locked">Locked Capsules</TabsTrigger>
+            <TabsTrigger value="opened">Opened Capsules</TabsTrigger>
+          </TabsList>
 
-          <TabsTrigger value="opened">Opened Capsules</TabsTrigger>
-        </TabsList>
+          <TabsContent value="locked">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredCapsules
+                .filter((c) => new Date(c.unlockDate) > new Date())
+                .map((capsule) => (
+                  <Card key={capsule.id}>
+                    <CardHeader className="flex justify-between items-center">
+                      <h2 className="text-lg font-semibold">{capsule.title}</h2>
+                      <Badge variant="destructive">Locked</Badge>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-gray-500">
+                        Unlocks on {new Date(capsule.unlockDate).toDateString()}
+                      </p>
+                    </CardContent>
+                    <CardFooter className="flex justify-end gap-2">
+                      <Button variant="outline" size="icon">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button variant="outline" size="icon">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => handleDelete(capsule.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+            </div>
+          </TabsContent>
 
-        <TabsContent value="locked">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCapsules
-              .filter((c) => c.status === "Locked")
-              .map((capsule) => (
-                <Card key={capsule.id}>
-                  <CardHeader className="flex justify-between items-center">
-                    <h2 className="text-lg font-semibold">{capsule.title}</h2>
-
-                    <Badge variant="destructive">Locked</Badge>
-                  </CardHeader>
-
-                  <CardContent>
-                    <p className="text-sm text-gray-500">
-                      Unlocks on {capsule.unlockDate}
-                    </p>
-                  </CardContent>
-
-                  <CardFooter className="flex justify-end gap-2">
-                    <Button variant="outline" size="icon">
-                      <Eye className="w-4 h-4" />
-                    </Button>
-
-                    <Button variant="outline" size="icon">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-
-                    <Button variant="destructive" size="icon">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-          </div>
-        </TabsContent>
-
-        <TabsContent value="opened">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {filteredCapsules
-              .filter((c) => c.status === "Opened")
-              .map((capsule) => (
-                <Card key={capsule.id}>
-                  <CardHeader className="flex justify-between items-center">
-                    <h2 className="text-lg font-semibold">{capsule.title}</h2>
-
-                    <Badge>Opened</Badge>
-                  </CardHeader>
-
-                  <CardContent>
-                    <p className="text-sm text-gray-500">
-                      Opened on {capsule.unlockDate}
-                    </p>
-                  </CardContent>
-
-                  <CardFooter className="flex justify-end gap-2">
-                    <Button variant="outline" size="icon">
-                      <Eye className="w-4 h-4" />
-                    </Button>
-
-                    <Button variant="outline" size="icon">
-                      <Edit className="w-4 h-4" />
-                    </Button>
-
-                    <Button variant="destructive" size="icon">
-                      <Trash2 className="w-4 h-4" />
-                    </Button>
-                  </CardFooter>
-                </Card>
-              ))}
-          </div>
-        </TabsContent>
-      </Tabs>
+          <TabsContent value="opened">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+              {filteredCapsules
+                .filter((c) => new Date(c.unlockDate) <= new Date())
+                .map((capsule) => (
+                  <Card key={capsule.id}>
+                    <CardHeader className="flex justify-between items-center">
+                      <h2 className="text-lg font-semibold">{capsule.title}</h2>
+                      <Badge>Opened</Badge>
+                    </CardHeader>
+                    <CardContent>
+                      <p className="text-sm text-gray-500">
+                        Opened on {new Date(capsule.unlockDate).toDateString()}
+                      </p>
+                    </CardContent>
+                    <CardFooter className="flex justify-end gap-2">
+                      <Button variant="outline" size="icon">
+                        <Eye className="w-4 h-4" />
+                      </Button>
+                      <Button variant="outline" size="icon">
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="icon"
+                        onClick={() => handleDelete(capsule.id)}
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </CardFooter>
+                  </Card>
+                ))}
+            </div>
+          </TabsContent>
+        </Tabs>
+      )}
     </div>
   );
 };
