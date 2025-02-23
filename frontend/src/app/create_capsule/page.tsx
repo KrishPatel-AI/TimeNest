@@ -30,6 +30,7 @@ import { Label } from "@/components/ui/label";
 import { auth, db, storage } from "@/lib/firebaseConfig";
 import { collection, addDoc, serverTimestamp } from "firebase/firestore";
 import { ref, uploadBytes, getDownloadURL } from "firebase/storage";
+import { Badge } from "@/components/ui/badge";
 
 const categories = ["Personal", "Family", "Travel", "Career", "Milestone"];
 const hours = Array.from({ length: 12 }, (_, i) => (i + 1).toString());
@@ -41,6 +42,8 @@ const CreateCapsule = () => {
   const [title, setTitle] = useState("");
   const [category, setCategory] = useState("");
   const [message, setMessage] = useState("");
+  const [sharedEmails, setSharedEmails] = useState<string[]>([]);
+  const [emailInput, setEmailInput] = useState("");
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedHour, setSelectedHour] = useState("");
   const [selectedMinute, setSelectedMinute] = useState("");
@@ -48,39 +51,81 @@ const CreateCapsule = () => {
   // const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
-  // const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-  //   if (e.target.files && e.target.files.length > 0) {
-  //     setFile(e.target.files[0]);
-  //   }
-  // };
+  const handleAddEmail = () => {
+    if (emailInput.trim() === "") return;
+    if (!sharedEmails.includes(emailInput)) {
+      setSharedEmails([...sharedEmails, emailInput]);
+    }
+    setEmailInput("");
+  };
+  const handleRemoveEmail = (email: string) => {
+    setSharedEmails(sharedEmails.filter((e) => e !== email));
+  };
 
   const handleCreateCapsule = async () => {
     if (!auth.currentUser) {
       alert("Please login first.");
       return;
     }
-  
-    if (!title || !category || !message || !selectedDate || !selectedHour || !selectedMinute) {
+
+    if (
+      !title ||
+      !category ||
+      !message ||
+      !selectedDate ||
+      !selectedHour ||
+      !selectedMinute
+    ) {
       alert("Please fill all fields.");
       return;
     }
-  
+
+    // Convert selected date and time to a Date object
+    const now = new Date();
+    const selectedDateTime = new Date(selectedDate!);
+    const hour = parseInt(selectedHour, 10);
+    const minute = parseInt(selectedMinute, 10);
+
+    // Convert to 24-hour format
+    const finalHour =
+      selectedAmPm === "PM" && hour !== 12
+        ? hour + 12
+        : selectedAmPm === "AM" && hour === 12
+        ? 0
+        : hour;
+
+    selectedDateTime.setHours(finalHour);
+    selectedDateTime.setMinutes(minute);
+    selectedDateTime.setSeconds(0);
+
+    // Ensure the selected date-time is at least 2 minutes after the current time
+    const twoMinutesLater = new Date(now.getTime() + 2 * 60 * 1000);
+
+    if (selectedDateTime <= twoMinutesLater) {
+      alert(
+        "Unlock date and time must be at least 2 minutes after the current time."
+      );
+      return;
+    }
+
     try {
       const userId = auth.currentUser.uid;
+      const userEmail = auth.currentUser.email;
       const unlockTime = `${selectedHour}:${selectedMinute} ${selectedAmPm}`;
-  
-      // Store only text data in Firestore
+
       await addDoc(collection(db, "capsules"), {
         userId,
         title,
         category,
         message,
-        unlockDate: selectedDate.toISOString(),
+        unlockDate: selectedDateTime.toISOString(),
         unlockTime,
+        sharedWith: sharedEmails,
+        createdBy: userEmail,
         createdAt: serverTimestamp(),
       });
-  
-      // Clear form after successful submission
+
+      // Reset form fields
       setTitle("");
       setCategory("");
       setMessage("");
@@ -88,21 +133,23 @@ const CreateCapsule = () => {
       setSelectedHour("");
       setSelectedMinute("");
       setSelectedAmPm("AM");
-  
+      setSharedEmails([]);
+
       alert("Capsule created successfully!");
     } catch (error) {
       console.error("Error creating capsule:", error);
       alert("Failed to create capsule. Check console for details.");
     }
   };
-  
-  
+
   return (
     <div className="container mx-auto p-4">
       <Card>
         <CardHeader>
           <CardTitle>Create New Time Capsule</CardTitle>
-          <CardDescription>Preserve your memories for the future</CardDescription>
+          <CardDescription>
+            Preserve your memories for the future
+          </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -133,7 +180,23 @@ const CreateCapsule = () => {
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Write your message..."
             />
+            <Label>Share with (Enter Emails)</Label>
+            <div className="flex gap-2">
+              <Input
+                value={emailInput}
+                onChange={(e) => setEmailInput(e.target.value)}
+                placeholder="Enter email..."
+              />
+              <Button onClick={handleAddEmail}>Add</Button>
+            </div>
 
+            <div className="flex flex-wrap gap-2 mt-2">
+              {sharedEmails.map((email, index) => (
+                <Badge key={index} variant="secondary">
+                  {email} <span className="cursor-pointer ml-2" onClick={() => handleRemoveEmail(email)}>✕</span>
+                </Badge>
+              ))}
+            </div>
             <Label>Unlock Date & Time</Label>
             <div className="flex gap-2">
               <Popover>
@@ -148,7 +211,13 @@ const CreateCapsule = () => {
                     mode="single"
                     selected={selectedDate}
                     onSelect={setSelectedDate}
-                    disabled={(date) => date <= new Date()}
+                    disabled={(date) => {
+                      const now = new Date();
+                      const twoMinutesLater = new Date(
+                        now.getTime() + 2 * 60 * 1000
+                      );
+                      return date < new Date(now.setHours(0, 0, 0, 0)); // Disable past dates
+                    }}
                   />
                 </PopoverContent>
               </Popover>
