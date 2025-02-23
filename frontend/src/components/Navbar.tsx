@@ -8,7 +8,8 @@ import { ModeToggle } from "../components/ModeToggle";
 import { Button } from "../components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
-
+import Image from "next/image";
+import logo from "../../public/logo.png";
 
 export function Navbar() {
   const [user] = useAuthState(auth);
@@ -16,6 +17,13 @@ export function Navbar() {
     <header className="fixed top-0 left-0 w-full bg-background border-b shadow-sm z-50">
       <div className="container mx-auto flex items-center justify-between px-6 py-3">
         <div className="flex items-center gap-2">
+        <Image
+            src={logo} // Change to your actual logo path
+            alt="Time Nest Logo"
+            width={35}
+            height={35}
+            className="rounded-md"
+          />
           <span className="text-xl font-bold text-foreground">Time Nest</span>
         </div>
 

@@ -143,7 +143,7 @@ const CreateCapsule = () => {
   };
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto p-4 space-y-4">
       <Card>
         <CardHeader>
           <CardTitle>Create New Time Capsule</CardTitle>
@@ -180,6 +180,7 @@ const CreateCapsule = () => {
               onChange={(e) => setMessage(e.target.value)}
               placeholder="Write your message..."
             />
+            
             <Label>Share with (Enter Emails)</Label>
             <div className="flex gap-2">
               <Input
